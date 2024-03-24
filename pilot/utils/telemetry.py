@@ -164,7 +164,7 @@ class Telemetry:
 
         self.telemetry_id = f"telemetry-{uuid4()}"
         self.endpoint = self.DEFAULT_ENDPOINT
-        self.enabled = True
+        self.enabled = False
         log.debug(
             f"Telemetry.setup(): setting up anonymous telemetry (id={self.telemetry_id})"
         )

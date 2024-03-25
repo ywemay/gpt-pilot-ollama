@@ -102,7 +102,7 @@ If you are interested in our learnings during this project, you can check [our l
 Otherwise, you can use the CLI tool.
 
 After you have Python and (optionally) PostgreSQL installed, follow these steps:
-1. `git clone https://github.com/Pythagora-io/gpt-pilot.git` (clone the repo)
+1. `git clone https://github.com/ywemay/gpt-pilot-ollama.git` (clone the repo)
 2. `cd gpt-pilot`
 3. `python -m venv pilot-env` (create a virtual environment)
 4. `source pilot-env/bin/activate` (or on Windows `pilot-env\Scripts\activate`) (activate the virtual environment)
@@ -125,7 +125,7 @@ All generated code will be stored in the folder `workspace` inside the folder na
 [Click here](https://github.com/Pythagora-io/gpt-pilot/wiki/Apps-created-with-GPT-Pilot) to see all example apps created with GPT Pilot.
 
 ## 🐳 How to start gpt-pilot in docker?
-1. `git clone https://github.com/Pythagora-io/gpt-pilot.git` (clone the repo)
+1. `git clone https://github.com/ywemay/gpt-pilot-ollama.git` (clone the repo)
 2. Update the `docker-compose.yml` environment variables, which can be done via `docker compose config`. If you wish to use a local model, please go to [https://localai.io/basics/getting_started/](https://localai.io/basics/getting_started/).
 3. By default, GPT Pilot will read & write to `~/gpt-pilot-workspace` on your machine, you can also edit this in `docker-compose.yml`
 4. run `docker compose build`. this will build a gpt-pilot container for you.
@@ -135,6 +135,19 @@ All generated code will be stored in the folder `workspace` inside the folder na
 
 This will start two containers, one being a new image built by the `Dockerfile` and a Postgres database. The new image also has [ttyd](https://github.com/tsl0922/ttyd) installed so that you can easily interact with gpt-pilot. Node is also installed on the image and port 3000 is exposed.
 
+
+## Ollama
+
+This is a fork of the original gpt-pilot. It has additional functionality when it comes to self hosted LLM models. It is addapted to talk with ``open-webui`` + ``ollama`` models.
+
+The following global variables can be set to set up the ``gpt-pilot`` and ``open-webui`` communication:
+
+```bash
+ENDPOINT=OLLAMA
+OLLAMA_ENDPOINT=http://127.0.0.1:8080/ollama/api/chat
+# in case of running behind proxy protected with token
+OLLAMA_API_KEY='<your Open-WebUI user token>'
+```
 
 # 🧑‍💻️ CLI arguments
 

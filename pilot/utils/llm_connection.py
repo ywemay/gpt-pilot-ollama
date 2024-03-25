@@ -128,6 +128,20 @@ def create_gpt_chat_completion(messages: List[dict], req_type, project,
             if key in gpt_data:
                 del gpt_data[key]
 
+    # delete some keys if using "OpenRouter" API
+    if os.getenv('ENDPOINT') == 'OLLAMA':
+        options = {
+            'temperature': temperature,
+            'top_p': 1,
+            'repeat_penalty': 0,
+        }
+        keys_to_delete = ['n', 'max_tokens', 'temperature', 'top_p', 'presence_penalty', 'frequency_penalty']
+        for key in keys_to_delete:
+            if key in gpt_data:
+                del gpt_data[key]
+        # gpt_data['options'] = options
+        # gpt_data['stream'] = False
+
     # Advise the LLM of the JSON response schema we are expecting
     messages_length = len(messages)
     function_call_message = add_function_calls_to_request(gpt_data, function_calls)
@@ -430,6 +444,13 @@ def stream_gpt_completion(data, req_type, project):
         }
         data['max_tokens'] = MAX_GPT_MODEL_TOKENS
         data['model'] = model
+    elif endpoint == 'OLLAMA':
+        endpoint_url = os.getenv('OLLAMA_ENDPOINT', 'http://127.0.0.1:8080/api/chat')
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + get_api_key_or_throw('OLLAMA_API_KEY')
+        }
+        data['model'] = model
     else:
         # If not, send the request to the OpenAI endpoint
         endpoint_url = os.getenv('OPENAI_ENDPOINT', 'https://api.openai.com/v1/chat/completions')
@@ -463,6 +484,7 @@ def stream_gpt_completion(data, req_type, project):
         msg += f"\n\nError details: {response.text}"
         raise ApiError(msg, response=response)
 
+
     if response.status_code != 200:
         project.dot_pilot_gpt.log_chat_completion(endpoint, model, req_type, data['messages'], response.text)
         logger.info(f'problem with request (status {response.status_code}): {response.text}')
@@ -485,24 +507,36 @@ def stream_gpt_completion(data, req_type, project):
 
             try:
                 json_line = json.loads(line)
+                # if 'done' in json_line:
+                #     print('Done in the json_line')
+                #     print(json_line['done'])
+                #     if json_line['done'] == True:
+                #         continue
 
                 if 'error' in json_line:
+                    print ('Error in json line')
                     logger.error(f'Error in LLM response: {json_line}')
                     telemetry.record_llm_request(token_count, time.time() - request_start_time, is_error=True)
                     raise ValueError(f'Error in LLM response: {json_line["error"]["message"]}')
 
-                if 'choices' not in json_line or len(json_line['choices']) == 0:
-                    continue
 
-                choice = json_line['choices'][0]
+
+                if 'message' in json_line and 'content' in json_line['message']:
+                    json_line=json_line['message']
+                else:
+                    if 'choices' not in json_line or len(json_line['choices']) == 0:
+                        continue
+
+                    choice = json_line['choices'][0]
 
                 # if 'finish_reason' in choice and choice['finish_reason'] == 'function_call':
                 #     function_calls['arguments'] = load_data_to_json(function_calls['arguments'])
                 #     return return_result({'function_calls': function_calls}, lines_printed)
 
-                json_line = choice['delta']
+                    json_line = choice['delta']
 
             except json.JSONDecodeError as e:
+                print(f'Unable to decode line {line}')
                 logger.error(f'Unable to decode line: {line} {e.msg}')
                 continue  # skip to the next line
 
@@ -525,6 +559,7 @@ def stream_gpt_completion(data, req_type, project):
                     if buffer.endswith('\n'):
                         if expecting_json and not received_json:
                             try:
+                                print(buffer)
                                 received_json = assert_json_response(buffer, lines_printed > 2)
                             except:
                                 telemetry.record_llm_request(token_count, time.time() - request_start_time, is_error=True)
@@ -536,6 +571,7 @@ def stream_gpt_completion(data, req_type, project):
                     gpt_response += content
                     print(content, type='stream', end='', flush=True)
 
+    print(gpt_response)
     print('\n', type='stream')
 
     telemetry.record_llm_request(
